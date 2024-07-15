@@ -87,14 +87,17 @@ class Dataset(torch.utils.data.Dataset):
         return self._raw_idx.size
 
     def __getitem__(self, idx):
-        image = self._load_raw_image(self._raw_idx[idx])
-        assert isinstance(image, np.ndarray)
-        assert list(image.shape) == self.image_shape
-        assert image.dtype == np.uint8
-        if self._xflip[idx]:
-            assert image.ndim == 3 # CHW
-            image = image[:, :, ::-1]
-        return image.copy(), self.get_label(idx)
+        try:
+            image = self._load_raw_image(self._raw_idx[idx])
+            assert isinstance(image, np.ndarray)
+            assert list(image.shape) == self.image_shape
+            assert image.dtype == np.uint8
+            if self._xflip[idx]:
+                assert image.ndim == 3 # CHW
+                image = image[:, :, ::-1]
+            return image.copy(), self.get_label(idx)
+        except IndexError:
+            return
 
     def get_label(self, idx):
         label = self._get_raw_labels()[self._raw_idx[idx]]
@@ -279,7 +282,7 @@ if __name__ == '__main__':
     dpath = '/data/liwenbo/datasets/Places365/standard/val_large'
     D = ImageFolderMaskDataset(path=dpath)
     print(D.__len__())
-    for i in range(D.__len__()-1):
+    for i in range(D.__len__()):
         print(i)
         a, b, c = D.__getitem__(i)
         if a.shape != (3, 512, 512):
