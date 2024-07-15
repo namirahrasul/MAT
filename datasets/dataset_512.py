@@ -279,7 +279,7 @@ if __name__ == '__main__':
     dpath = '/data/liwenbo/datasets/Places365/standard/val_large'
     D = ImageFolderMaskDataset(path=dpath)
     print(D.__len__())
-    for i in range(D.__len__()):
+    for i in range(D.__len__()-1):
         print(i)
         a, b, c = D.__getitem__(i)
         if a.shape != (3, 512, 512):
