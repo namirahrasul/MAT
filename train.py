@@ -124,13 +124,17 @@ def setup_training_loop_kwargs(
         data_val = data
     if dataloader is None:
         dataloader = 'datasets.dataset_512.ImageFolderMaskDataset'
-
+    print(f"---before args.training_set_kwargs----")
     args.training_set_kwargs = dnnlib.EasyDict(class_name=dataloader, path=data,
                                                use_labels=True, max_size=None, xflip=False)
+    print(f"---after args.training_set_kwargs----")
+    print(f"---before args.val_set_kwargs----")
     args.val_set_kwargs = dnnlib.EasyDict(class_name=dataloader, path=data_val,
                                           use_labels=True, max_size=None, xflip=False)
+    print(f"---after args.val_set_kwargs----")
+    print(f"---before args.data_loader_kwargs----")
     args.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=3, prefetch_factor=2)
-
+    print(f"---after args.data_loader_kwargs----")
     try:
         # training part
         training_set = dnnlib.util.construct_class_by_name(**args.training_set_kwargs) # subclass of training.dataset.Dataset
@@ -468,6 +472,7 @@ def subprocess_fn(rank, args, temp_dir):
         custom_ops.verbosity = 'none'
 
     # Execute training loop.
+    print(f"BEFORE training_loop.training_loop(rank=rank, **args)")
     training_loop.training_loop(rank=rank, **args)
 
 #----------------------------------------------------------------------------
