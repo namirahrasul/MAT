@@ -42,6 +42,8 @@ class Dataset(torch.utils.data.Dataset):
 
         # Apply max_size.
         self._raw_idx = np.arange(self._raw_shape[0], dtype=np.int64)
+        print(f"raw_idx _ array")
+        print(self._raw_idx)
         if (max_size is not None) and (self._raw_idx.size > max_size):
             np.random.RandomState(random_seed).shuffle(self._raw_idx)
             self._raw_idx = np.sort(self._raw_idx[:max_size])
@@ -165,6 +167,7 @@ class ImageFolderMaskDataset(Dataset):
                  resolution=None,       # Ensure specific resolution, None = highest available.
                  hole_range=[0, 1],
                  **super_kwargs):        # Additional arguments for the Dataset base class.
+        print(f"----------------------- Inside __init__ ------------------------")
         print(f"Initializing dataset with path: {path}")
         self._path = path
         self._zipfile = None
@@ -222,6 +225,7 @@ class ImageFolderMaskDataset(Dataset):
         return dict(super().__getstate__(), _zipfile=None)
 
     def _load_raw_image(self, raw_idx):
+        print(f"-------------------- Inside _load_raw_image ----------------------")
         print(f"Loading raw image at index: {raw_idx}")
         fname = self._image_fnames[raw_idx]
         with self._open_file(fname) as f:
@@ -256,6 +260,7 @@ class ImageFolderMaskDataset(Dataset):
         return image
 
     def _load_raw_labels(self):
+        print(f"----------Inside _load_raw_labels---------------")
         print("Loading labels from labels.json")
         fname = 'labels.json'
         if fname not in self._all_fnames:
@@ -272,6 +277,7 @@ class ImageFolderMaskDataset(Dataset):
         return labels
 
     def __getitem__(self, idx):
+        print(f"----------------------Inside __getitem___------------------------")
         print(f"Getting item at index: {idx}")
         image = self._load_raw_image(self._raw_idx[idx])
 
@@ -279,6 +285,7 @@ class ImageFolderMaskDataset(Dataset):
         assert list(image.shape) == self.image_shape
         assert image.dtype == np.uint8
         mask = RandomMask(image.shape[-1], hole_range=self._hole_range)  # hole as 0, reserved as 1
+        
         print(f"Image shape: {image.shape}, Mask shape: {mask.shape}, Label: {self.get_label(idx)}")
         return image.copy(), mask, self.get_label(idx)
 
