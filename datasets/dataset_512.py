@@ -276,6 +276,9 @@ class ImageFolderMaskDataset(Dataset):
     def __getitem__(self, idx):
         print(f"----------------------Inside __getitem___------------------------")
         print(f"Getting item at index: {idx}")
+        if idx==self._raw_idx.size -1:
+            print(f"Exceeded index")
+            return None
         image = self._load_raw_image(self._raw_idx[idx])
 
         assert isinstance(image, np.ndarray)
