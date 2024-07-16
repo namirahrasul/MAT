@@ -89,7 +89,6 @@ class Dataset(torch.utils.data.Dataset):
         return self._raw_idx.size
 
     def __getitem__(self, idx):
-        try:
             image = self._load_raw_image(self._raw_idx[idx])
             assert isinstance(image, np.ndarray)
             assert list(image.shape) == self.image_shape
@@ -98,8 +97,6 @@ class Dataset(torch.utils.data.Dataset):
                 assert image.ndim == 3 # CHW
                 image = image[:, :, ::-1]
             return image.copy(), self.get_label(idx)
-        except IndexError:
-            return
 
     def get_label(self, idx):
         label = self._get_raw_labels()[self._raw_idx[idx]]
