@@ -159,22 +159,24 @@ class Dataset(torch.utils.data.Dataset):
 
 #----------------------------------------------------------------------------
 
-
 class ImageFolderMaskDataset(Dataset):
     def __init__(self,
-        path,                   # Path to directory or zip.
-        resolution      = None, # Ensure specific resolution, None = highest available.
-        hole_range=[0,1],
-        **super_kwargs,         # Additional arguments for the Dataset base class.
-    ):
+                 path,                   # Path to directory or zip.
+                 resolution=None,       # Ensure specific resolution, None = highest available.
+                 hole_range=[0, 1],
+                 **super_kwargs):        # Additional arguments for the Dataset base class.
+        print(f"Initializing dataset with path: {path}")
         self._path = path
         self._zipfile = None
         self._hole_range = hole_range
 
         if os.path.isdir(self._path):
+            print(f"Loading from directory: {self._path}")
             self._type = 'dir'
-            self._all_fnames = {os.path.relpath(os.path.join(root, fname), start=self._path) for root, _dirs, files in os.walk(self._path) for fname in files}
+            self._all_fnames = {os.path.relpath(os.path.join(root, fname), start=self._path)
+                                for root, _dirs, files in os.walk(self._path) for fname in files}
         elif self._file_ext(self._path) == '.zip':
+            print(f"Loading from zip file: {self._path}")
             self._type = 'zip'
             self._all_fnames = set(self._get_zipfile().namelist())
         else:
@@ -182,6 +184,7 @@ class ImageFolderMaskDataset(Dataset):
 
         PIL.Image.init()
         self._image_fnames = sorted(fname for fname in self._all_fnames if self._file_ext(fname) in PIL.Image.EXTENSION)
+        print(f"Found {len(self._image_fnames)} image files.")
         if len(self._image_fnames) == 0:
             raise IOError('No image files found in the specified path')
 
@@ -219,20 +222,20 @@ class ImageFolderMaskDataset(Dataset):
         return dict(super().__getstate__(), _zipfile=None)
 
     def _load_raw_image(self, raw_idx):
+        print(f"Loading raw image at index: {raw_idx}")
         fname = self._image_fnames[raw_idx]
         with self._open_file(fname) as f:
-            if pyspng is not None and self._file_ext(fname) == '.png':
-                image = pyspng.load(f.read())
-            else:
-                image = np.array(PIL.Image.open(f))
-        if image.ndim == 2:
-            image = image[:, :, np.newaxis] # HW => HWC
+            image = np.array(PIL.Image.open(f))
 
-        # for grayscale image
+        if image.ndim == 2:
+            image = image[:, :, np.newaxis]  # HW => HWC
+
+        # For grayscale image
         if image.shape[2] == 1:
+            print("Converting grayscale image to RGB.")
             image = np.repeat(image, 3, axis=2)
 
-        # restricted to 512x512
+        # Restricted to 512x512
         res = 512
         H, W, C = image.shape
         if H < res or W < res:
@@ -241,16 +244,19 @@ class ImageFolderMaskDataset(Dataset):
             left = 0
             right = max(0, res - W)
             image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_REFLECT)
+
         H, W, C = image.shape
         h = random.randint(0, H - res)
         w = random.randint(0, W - res)
-        image = image[h:h+res, w:w+res, :]
+        image = image[h:h + res, w:w + res, :]
 
-        image = np.ascontiguousarray(image.transpose(2, 0, 1)) # HWC => CHW
+        image = np.ascontiguousarray(image.transpose(2, 0, 1))  # HWC => CHW
+        print(f"Final image shape after processing: {image.shape}")
 
         return image
 
     def _load_raw_labels(self):
+        print("Loading labels from labels.json")
         fname = 'labels.json'
         if fname not in self._all_fnames:
             return None
@@ -262,20 +268,19 @@ class ImageFolderMaskDataset(Dataset):
         labels = [labels[fname.replace('\\', '/')] for fname in self._image_fnames]
         labels = np.array(labels)
         labels = labels.astype({1: np.int64, 2: np.float32}[labels.ndim])
+        print(f"Loaded labels for {len(labels)} images.")
         return labels
 
     def __getitem__(self, idx):
+        print(f"Getting item at index: {idx}")
         image = self._load_raw_image(self._raw_idx[idx])
 
         assert isinstance(image, np.ndarray)
         assert list(image.shape) == self.image_shape
         assert image.dtype == np.uint8
-        if self._xflip[idx]:
-            assert image.ndim == 3 # CHW
-            image = image[:, :, ::-1]
         mask = RandomMask(image.shape[-1], hole_range=self._hole_range)  # hole as 0, reserved as 1
+        print(f"Image shape: {image.shape}, Mask shape: {mask.shape}, Label: {self.get_label(idx)}")
         return image.copy(), mask, self.get_label(idx)
-
 
 if __name__ == '__main__':
     res = 512
@@ -287,3 +292,4 @@ if __name__ == '__main__':
         a, b, c = D.__getitem__(i)
         if a.shape != (3, 512, 512):
             print(i, a.shape)
+
